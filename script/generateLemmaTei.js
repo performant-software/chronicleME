@@ -13,6 +13,7 @@ async function generateLemmaTei(timestamp) {
     const auth = config.auth;
     const outdir = `public/data/dts-xml_${timestamp}`;
 
+    // initialize directory structure
     if (!fs.existsSync("public")) fs.mkdirSync("public", { recursive: true });
     if (!fs.existsSync("public/data")) fs.mkdirSync("public/data", { recursive: true });
     if (!fs.existsSync(outdir)) fs.mkdirSync(outdir, { recursive: true });
@@ -272,6 +273,7 @@ async function generateLemmaTei(timestamp) {
     }
 
     function createNodeTei(node) {
+        // create TEI markup for a single node
         const space = node.needsSpaceBefore ? " " : "";
         let text = stripTags(node.text);
         if (node.annotations) {
@@ -379,6 +381,7 @@ async function generateLemmaTei(timestamp) {
         const sectionsTei = sections.map((section) => {
             let sectionNodes = [];
             let pos = 0;
+            // add each section (with start and end positions in the text) to sectionNodes
             section.readings.forEach((reading, i) => {
                 sectionNodes.push({
                     id: reading.id,
@@ -389,6 +392,7 @@ async function generateLemmaTei(timestamp) {
                 });
                 pos += reading.text.length;
             });
+            // create markup and return the TEI div
             const markedupText = createSectionTei(section.annotations, sectionNodes);
             const head1 = section.titles?.armenianTitle
                 ? `                <head xml:lang="hy">${section.titles.armenianTitle}</head>\n`

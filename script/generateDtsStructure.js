@@ -18,7 +18,6 @@ async function generateDtsStructure(timestamp) {
             return Promise.all(manuscriptFiles.map(async (file) => {
                 // process every xml file in each manuscript folder
                 if (path.extname(file).toLowerCase().includes("xml")) {
-                    // console.log(`opening ${path.resolve(dirPath, file)}`);
                     await teiToDtsFlat(
                         path.resolve(dirPath, file),
                         // use manuscript name (directory name) as id
@@ -35,9 +34,10 @@ async function generateDtsStructure(timestamp) {
     }));
 
     function teiToDtsFlat(filename, id, mode) {
+        // run the tei2dtsflat script on the file, then resolve promise on exit
         return new Promise((resolve, reject) => {
             const proc = spawn("python3", [
-                `script/vendor/simple-tei2dtsflat/tei2dtsflat.py`,
+                `script/simple-tei2dtsflat/tei2dtsflat.py`,
                 "-b", `public/data/dts-data_${timestamp}`, // Base dir to save structure
                 "-m", mode, // element by which to split tei (pb or div)
                 "-i", id, // ID for output XML
@@ -54,11 +54,7 @@ async function generateDtsStructure(timestamp) {
                 console.log(error);
                 reject(error);
             });
-            // proc.on("exit", async (code) => {
-            //     console.log(`exited ${filename} with code ${code}`);
-            // });
             proc.on("close", async (code) => {
-                // console.log(`closed ${filename} with code ${code}`);
                 if (filename === lemmaFile) {
                     // delete temp dir
                     await fs.rm(`public/data/dts-xml_${timestamp}`, {

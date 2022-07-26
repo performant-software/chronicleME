@@ -118,54 +118,9 @@ This will create a new timestamped directory in the `public/data` folder, contai
 
 In order to set up a server with DTS, you may follow the instructions at the [DTSflat-server](https://github.com/robcast/dtsflat-server) repo. Just copy your new DTS data directory (`public/data/dts-data_YYYY-MM-DD_hh:mm:ss`) to the `DTS_DATA_DIR` location you set in `.env` when following that repo.
 
-If you wish to serve the DTS endpoints from the same server as the critical edition, you may need to modify the Nginx configuration. For example, our development server uses the following configuration to serve the DTS endpoints on port 3333, pulling data from the `/var/www/dts-data` directory. It is appended as a second `server` block, in addition to the one that serves the critical edition static site.
+If you wish to serve the DTS endpoints from the same server as the critical edition, you may need to modify the Nginx configuration. For example, our development server uses the following configuration to serve the DTS endpoints from `/dts`, pulling data from the `/var/www/dts-data` directory. It is appended as a second `location` block, in addition to block one for `/` that serves the critical edition static site from the `/var/www/html` directory.
 
-<details>
-<summary>Nginx configuration for port 3333</summary>
-
-```conf
-server {
-  listen       3333 default_server;
-  listen  [::]:3333 default_server;
-
-  server_name _;
-
-  access_log /var/log/nginx/access-dts.log;
-  error_log /var/log/nginx/error-dts.log debug;
-
-  # add CORS header to all responses
-  add_header Access-Control-Allow-Origin "*";
-
-  # base for all try_files
-  root /var/www/dts-data;
-
-  # map DTS documents endpoint to files
-  location /dts/documents {
-      default_type text/xml;
-      # second try works with empty $arg_ref but fails with invalid $arg_ref
-      try_files /$arg_id/$arg_ref/tei-frag.xml /$arg_id$arg_ref/tei-full.xml =400;
-  }
-
-  # map DTS navigation endpoint to files
-  location /dts/navigation {
-      default_type application/json;
-      try_files /$arg_id$ref_path$level_path/dts-nav.json =400;
-  }
-}
-
-
-map $arg_ref $ref_path {
-  default "";
-  ~(.+) /$1;
-}
-
-map $arg_level $level_path {
-  default "";
-  ~(.+) /$1;
-}
-```
-
-</details>
+To view this configuration, view [example.nginx.conf](script/example.nginx.conf) in the `/script` directory.
 
 With this configuration, when you are ready to regenerate the DTS data, you can run the script and then replace the contents of `/var/www/dts-data` on the server with the contents of the latest `public/data/dts-data_YYYY-MM-DD_hh:mm:ss` directory. For example, from the project root directory on your local machine, the command might look something like this with [rsync](https://www.digitalocean.com/community/tutorials/how-to-use-rsync-to-sync-local-and-remote-directories):
 

@@ -118,7 +118,7 @@ This will create a new timestamped directory in the `public/data` folder, contai
 
 In order to set up a server with DTS, you may follow the instructions at the [DTSflat-server](https://github.com/robcast/dtsflat-server) repo. Just copy your new DTS data directory (`public/data/dts-data_YYYY-MM-DD_hh:mm:ss`) to the `DTS_DATA_DIR` location you set in `.env` when following that repo.
 
-If you wish to serve the DTS endpoints from the same server as the critical edition, you may need to modify the Nginx configuration. For example, our development server uses the following configuration to serve the DTS endpoints from `/dts`, pulling data from the `/var/www/dts-data` directory. It is appended as a second `location` block, in addition to block one for `/` that serves the critical edition static site from the `/var/www/html` directory.
+If you wish to serve the DTS endpoints from the same server as the critical edition, you may need to modify the Nginx configuration. For example, our development server uses the following configuration to serve the DTS endpoints from `/dts`, pulling data from the `/var/www/dts-data` directory. It is appended as a second `location` block, in addition to the block for `/` that serves the critical edition static site from the `/var/www/html` directory.
 
 To view this configuration, view [example.nginx.conf](script/example.nginx.conf) in the `/script` directory.
 

@@ -17,9 +17,9 @@ const EditionLanding = ({ onSearch, sections }) => {
     // the years at which the books are split
     const milestones = [500, 550, 577];
 
-    const book1Id = useMemo(() => (sections && sections[0].sectionId), [sections]);
-    const book2Id = useMemo(() => (sections && sections.find((s) => (Number(s.milestone) >= milestones[0]))?.sectionId), [sections]);
-    const book3Id = useMemo(() => (sections && sections.find((s) => (Number(s.milestone) >= milestones[1]))?.sectionId), [sections]);
+    const book1Id = useMemo(() => (sections?.length && sections[0].sectionId), [sections]);
+    const book2Id = useMemo(() => (sections?.length && sections.find((s) => (Number(s.milestone) >= milestones[0]))?.sectionId), [sections]);
+    const book3Id = useMemo(() => (sections?.length && sections.find((s) => (Number(s.milestone) >= milestones[1]))?.sectionId), [sections]);
     const continuationId = useMemo(() => (sections && sections.find((s) => (Number(s.milestone) >= milestones[2]))?.sectionId), [sections]);
 
     return (

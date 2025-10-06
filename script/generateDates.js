@@ -7,7 +7,7 @@ async function generateDates(timestamp) {
     console.log("start read and generate date info", moment().format("mm ss"));
     const config = loadConfig();
     const auth = config.auth;
-    const baseURL = `${config.options.repository}/tradition/${config.options.tradition_id}`;
+    const baseURL = `${config.options.repository}/${config.options.tradition_id}`;
     const outdir = `public/data/data_${timestamp}`;
     let wordHash = {};
     let dateList = [];
@@ -24,7 +24,7 @@ async function generateDates(timestamp) {
 
     // a possible api call to look up the reading, you can pass a begin and end node
     // we will start with getting the translation though -
-    //http://www.example.com/tradition/tradId/section/sectionId/lemmatext/
+    //http://www.example.com/tradId/section/sectionId/lemmatext/
 
     function writeDateList() {
         makeDirectory();
@@ -143,7 +143,7 @@ async function generateDates(timestamp) {
                     params: { label: "DATE" },
                 })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "DATE"));
         } catch (error) {
             console.log("error fetching all date annotations", error);
             return null;
@@ -158,7 +158,7 @@ async function generateDates(timestamp) {
                     params: { label: "DATEREF" },
                 })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "DATEREF"));
         } catch (error) {
             console.log("error fetching all date refs", error);
             return null;
@@ -173,7 +173,7 @@ async function generateDates(timestamp) {
                     params: { label: "DATING" },
                 })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "DATING"));
         } catch (error) {
             console.log("error fetching all datings", error);
             return null;
@@ -216,7 +216,7 @@ async function generateDates(timestamp) {
                     params: { label: "TRANSLATION" },
                 })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "TRANSLATION"));
         } catch (error) {
             console.log("error fetching translation for section", sectionId);
             return null;

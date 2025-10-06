@@ -8,7 +8,7 @@ async function GenerateLocationData(timestamp) {
     const startTime = moment();
     console.log("started", startTime.format("hh:mm:ss"));
     const config = loadConfig();
-    const baseURL = `${config.options.repository}/tradition/${config.options.tradition_id}`;
+    const baseURL = `${config.options.repository}/${config.options.tradition_id}`;
     const auth = config.auth;
     const outdir = `public/data/data_${timestamp}`;
     const geoLocations = [];

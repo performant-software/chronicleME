@@ -11,7 +11,7 @@ async function generateStore(timestamp) {
     const startTime = moment();
     console.log("started", startTime.format("hh:mm:ss"));
     const config = loadConfig();
-    const baseURL = `${config.options.repository}/tradition/${config.options.tradition_id}`;
+    const baseURL = `${config.options.repository}/${config.options.tradition_id}`;
     const auth = config.auth;
     const outdir = `public/data/data_${timestamp}`;
     const lunrIndex = [];
@@ -178,7 +178,7 @@ async function generateStore(timestamp) {
         const response = await axios
             .get(url, { auth, params: { final: "true" } })
             .catch((e) => console.log(e));
-        return response.data;
+        return response.data.filter((i) => (i.final));
     }
 
     async function getReadings(sectionId) {
@@ -205,7 +205,7 @@ async function generateStore(timestamp) {
                 params: { label: "TRANSLATION" },
             })
             .catch((e) => console.log(e));
-        return response.data;
+        return response.data.filter((i) => (i.label === "TRANSLATION"));
     }
 
     async function getTitle(sectionId) {
@@ -216,7 +216,7 @@ async function generateStore(timestamp) {
                 params: { label: "TITLE" },
             })
             .catch((e) => console.log(e));
-        return response.data;
+        return response.data.filter((i) => (i.label === "TITLE"));
     }
 
     async function getPersons(sectionId) {
@@ -228,7 +228,7 @@ async function generateStore(timestamp) {
                     params: { label: "PERSONREF" },
                 })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "PERSONREF"));
         } catch (error) {
             console.log(`no person refs for section ${sectionId} `);
             return null;
@@ -241,7 +241,7 @@ async function generateStore(timestamp) {
             const response = await axios
                 .get(`${baseURL}/annotations?label=PERSON`, { auth })
                 .catch((e) => console.log(e));
-            return response;
+            return response.data.filter((i) => (i.label === "PERSON"));
         } catch (error) {
             console.log(error.message);
         }
@@ -253,7 +253,7 @@ async function generateStore(timestamp) {
             const response = await axios
                 .get(`${annotationURL}`, { auth, params: { label: "COMMENT" } })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "COMMENT"));
         } catch (error) {
             console.log(`no comments for section ${sectionId} `);
             return null;
@@ -269,7 +269,7 @@ async function generateStore(timestamp) {
                     params: { label: "PLACEREF" },
                 })
                 .catch((e) => console.log(e));
-            return response.data;
+            return response.data.filter((i) => (i.label === "PLACEREF"));
         } catch (error) {
             console.log(`no place refs for section ${sectionId} `);
             return null;
@@ -281,7 +281,7 @@ async function generateStore(timestamp) {
         const response = await axios
             .get(`${annotationURL}`, { auth, params: { label: "DATEREF" } })
             .catch((e) => console.log(e));
-        return response.data;
+        return response.data.filter((i) => (i.label === "DATEREF"));
     }
 
     function readingToHTML(reading) {
@@ -412,7 +412,7 @@ async function generateStore(timestamp) {
             sigil === "Lemma text"
                 ? (r) => r.is_lemma && !r.is_start && !r.is_end
                 : (r) =>
-                      r.witnesses.includes(sigil) && !r.is_start && !r.is_end;
+                    r.witnesses.includes(sigil) && !r.is_start && !r.is_end;
         const witReadings = readings.filter(filterCondition);
         witReadings.sort((first, second) => {
             return first.rank - second.rank;

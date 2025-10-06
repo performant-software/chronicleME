@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
 import { Grid } from "@material-ui/core";
 import withWidth from "@material-ui/core/withWidth"; // used by grid
@@ -32,6 +32,13 @@ const Edition = (props) => {
     let { sectionID } = useParams();
     let { witnessID } = useParams();
 
+    const sectionIndex = useMemo(() =>
+        sections && sections.find((s) => (s.sectionId === sectionID))
+            ? sections.find((s) => (s.sectionId === sectionID)).index
+            : null,
+        [sectionID]
+    );
+
     const [selectedNode, setSelectedNode] = useState(null);
     const [selectedSentence, setSelectedSentence] = useState({});
     const [selectedRank, setSelectedRank] = useState();
@@ -54,6 +61,16 @@ const Edition = (props) => {
     );
     const [rightReading, setRightReading] = useState("Translation");
     const [isExpanded, setIsExpanded] = useState(false);
+
+    useEffect(() => {
+        //update the section ID if necessary if the timestamp is changed
+        if (sections && !sections.find((s) => (s.sectionId === sectionID))) {
+            //in this case we'll default to navigating to the section in the new list 
+            // that shares the index of the current section in the old list
+            const newSectionID = sections?.length ? (sections.find((s) => (s.index === sectionIndex))?.sectionId || sections[0].sectionId) : null;
+            newSectionID && props.history.push(`/Edition/${newSectionID}`);
+        }
+    }, [sections]);
 
     useEffect(() => {
         setSelectedSentence(null);

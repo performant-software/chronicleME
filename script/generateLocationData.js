@@ -30,7 +30,7 @@ async function GenerateLocationData(timestamp) {
         const geoRequests = [];
         const places = await getPlaces().catch((e) => console.log(e));
 
-        places.data.forEach((p) => {
+        places && places.forEach((p) => {
             let url = p.properties.href;
             if (url && url.indexOf("pleiades") > -1) {
                 let pleiadesRequest = fetchGeoJsonLocation(url, p);
@@ -153,7 +153,7 @@ async function GenerateLocationData(timestamp) {
             const response = await axios
                 .get(`${baseURL}/annotations?label=PLACE`, { auth })
                 .catch((e) => console.log(e));
-            return response;
+            return response.data ? response.data.filter((i) => (i.label === "PLACE")) : [];
         } catch (error) {
             console.log(`error ${error.message}`);
         }

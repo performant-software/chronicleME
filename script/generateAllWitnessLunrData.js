@@ -261,7 +261,7 @@ async function generateLunrSource(timestamp) {
         const response = await axios
             .get(url, { auth, params: { final: "true" } })
             .catch((e) => console.log(e));
-        return response.data.filter((i) => (i.final));
+        return response.data;
     }
 
     async function getReadings(sectionId) {

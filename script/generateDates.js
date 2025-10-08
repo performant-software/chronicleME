@@ -50,25 +50,13 @@ async function generateDates(timestamp) {
     }
 
     async function fetchDateInfo() {
-        let dates = new Promise((resolve) => {
-            fetchDateAnnotations().then((dates) => {
-                resolve(dates);
-            });
-        });
+        let annotations = await fetchAnnotations();
 
-        let daterefs = new Promise((resolve) => {
-            fetchDateRefs().then((refs) => {
-                resolve(refs);
-            });
-        });
-
-        let datings = Promise.resolve(fetchDatings()).catch((error) => {
-            console.log(error);
-        });
-
-        let dateInfo = await Promise.all([dates, daterefs, datings]).catch(
-            (e) => console.log(e)
-        );
+        let dateInfo = [
+            annotations?.filter((a) => (a.label === "DATE")),
+            annotations?.filter((a) => (a.label === "DATEREF")),
+            annotations?.filter((a) => (a.label === "DATING"))
+        ]
 
         console.log("dates, daterefs, and datings fetched");
 
@@ -135,50 +123,20 @@ async function generateDates(timestamp) {
         });
     }
 
-    async function fetchDateAnnotations() {
+    async function fetchAnnotations() {
         try {
             const response = await axios
                 .get(`${baseURL}/annotations`, {
-                    auth,
-                    params: { label: "DATE" },
+                    auth
                 })
                 .catch((e) => console.log(e));
-            return response.data.filter((i) => (i.label === "DATE"));
+            return response.data;
         } catch (error) {
             console.log("error fetching all date annotations", error);
             return null;
         }
     }
 
-    async function fetchDateRefs() {
-        try {
-            const response = await axios
-                .get(`${baseURL}/annotations`, {
-                    auth,
-                    params: { label: "DATEREF" },
-                })
-                .catch((e) => console.log(e));
-            return response.data.filter((i) => (i.label === "DATEREF"));
-        } catch (error) {
-            console.log("error fetching all date refs", error);
-            return null;
-        }
-    }
-
-    async function fetchDatings() {
-        try {
-            const response = await axios
-                .get(`${baseURL}/annotations`, {
-                    auth,
-                    params: { label: "DATING" },
-                })
-                .catch((e) => console.log(e));
-            return response.data.filter((i) => (i.label === "DATING"));
-        } catch (error) {
-            console.log("error fetching all datings", error);
-            return null;
-        }
-    }
 
     async function fetchTranslations() {
         let translationPromises = [];

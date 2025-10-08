@@ -90,87 +90,82 @@ async function generateStore(timestamp) {
     }
 
     async function getSectionData(sectionId, index, witnesses, validSections) {
-        await getLemmaText(sectionId).catch((e) => console.log(e));
-
-        let allReadings = new Promise((resolve) => {
-            getReadings(sectionId).then((readings) => {
+        try {
+            await getReadings(sectionId).then(async (readings) => {
                 writeReadingLookup(readings, sectionId);
                 writeLemmaFile(readings, sectionId);
                 writeWitnessFiles(readings, witnesses, sectionId);
-                getTranslation(sectionId).then((translation) => {
+                await getTranslation(sectionId).then((translation) => {
                     writeTranslationFile(translation, sectionId, readings);
-                    resolve();
                 });
             });
-        });
 
-        let titleArray = new Promise((resolve) => {
-            getTitle(sectionId).then((titles) => {
-                if (titles.length === 0)
-                    console.log("no title for section: ", sectionId);
-                else {
-                    const englishTitle =
-                        titles[0].properties.language === "en"
-                            ? titles[0].properties.text
-                            : titles[1].properties.text;
-                    const armenianTitle =
-                        titles[1].properties.language === "hy"
-                            ? titles[1].properties.text
-                            : titles[0].properties.text;
-                    const milestone = armenianTitle.substr(0, 3);
-                    console.log("milestone", milestone);
-                    let validSection = {
-                        sectionId: sectionId,
-                        englishTitle: englishTitle,
-                        armenianTitle: armenianTitle,
-                        milestone: milestone,
-                        index,
-                    };
-                    validSections.push(validSection);
-                }
-                resolve();
-            });
-        });
+            let annotations = await getAnnotations(sectionId);
 
-        let personArray = new Promise((resolve) => {
-            getPersons(sectionId).then((persons) => {
-                if (persons) writeAnnotationList(persons, sectionId, "persons");
-                let sectionPersons = annotationLookup(sectionId, persons);
-                personLookup.push(...sectionPersons);
-                resolve();
-            });
-        });
+            if (!annotations) {
+                throw new Error(`Error fetching annotations for section ${sectionId}`)
+            }
 
-        let commentArray = new Promise((resolve) => {
-            getComments(sectionId).then((comments) => {
-                if (comments)
-                    writeAnnotationList(comments, sectionId, "comments");
-                resolve();
-            });
-        });
+            let titles = annotations.filter((i) => (i.label === "TITLE"));
+            let persons = annotations.filter((i) => (i.label === "PERSONREF"));
+            let comments = annotations.filter((i) => (i.label === "COMMENT"));
+            let places = annotations.filter((i) => (i.label === "PLACEREF"));
 
-        let placeArray = new Promise((resolve) => {
-            getPlaces(sectionId).then((places) => {
-                if (places) writeAnnotationList(places, sectionId, "places");
-                let sectionPlaces = annotationLookup(sectionId, places);
-                locationLookup.push(...sectionPlaces);
-                resolve();
-            });
-        });
 
-        let dateArray = new Promise((resolve) => {
-            getDates(sectionId).then((dates) => {
-                if (dates) writeAnnotationList(dates, sectionId, "dates");
-                resolve();
-            });
-        });
-        return await Promise.all([
-            allReadings,
-            titleArray,
-            personArray,
-            commentArray,
-            placeArray,
-        ]).catch((e) => console.log(e));
+            if (titles.length === 0)
+                console.log("no title for section: ", sectionId);
+            else {
+                const englishTitle =
+                    titles[0].properties.language === "en"
+                        ? titles[0].properties.text
+                        : titles[1].properties.text;
+                const armenianTitle =
+                    titles[1].properties.language === "hy"
+                        ? titles[1].properties.text
+                        : titles[0].properties.text;
+                const milestone = armenianTitle.substr(0, 3);
+                console.log("milestone", milestone);
+                let validSection = {
+                    sectionId: sectionId,
+                    englishTitle: englishTitle,
+                    armenianTitle: armenianTitle,
+                    milestone: milestone,
+                    index,
+                };
+                validSections.push(validSection);
+            }
+
+
+            if (persons) writeAnnotationList(persons, sectionId, "persons");
+            let sectionPersons = annotationLookup(sectionId, persons);
+            personLookup.push(...sectionPersons);
+
+
+            if (comments)
+                writeAnnotationList(comments, sectionId, "comments");
+
+
+
+            if (places) writeAnnotationList(places, sectionId, "places");
+            let sectionPlaces = annotationLookup(sectionId, places);
+            locationLookup.push(...sectionPlaces);
+        } catch (error) {
+            console.log(sectionId, error)
+        }
+
+        // let dateArray = new Promise((resolve) => {
+        //     getDates(sectionId).then((dates) => {
+        //         if (dates) writeAnnotationList(dates, sectionId, "dates");
+        //         resolve();
+        //     });
+        // });
+        // return await Promise.all([
+        //     allReadings,
+        //     titleArray,
+        //     personArray,
+        //     commentArray,
+        //     placeArray,
+        // ]).catch((e) => console.log(e));
     }
 
     async function getLemmaText(sectionId) {
@@ -178,7 +173,7 @@ async function generateStore(timestamp) {
         const response = await axios
             .get(url, { auth, params: { final: "true" } })
             .catch((e) => console.log(e));
-        return response.data.filter((i) => (i.final));
+        return response.data;
     }
 
     async function getReadings(sectionId) {
@@ -197,6 +192,16 @@ async function generateStore(timestamp) {
         return response.data;
     }
 
+    async function getAnnotations(sectionId) {
+        const sectionURL = `${baseURL}/section/${sectionId}`;
+        const response = await axios
+            .get(`${sectionURL}/annotations`, {
+                auth
+            })
+            .catch((e) => console.log(e));
+        return response.data;
+    }
+
     async function getTranslation(sectionId) {
         const sectionURL = `${baseURL}/section/${sectionId}`;
         const response = await axios
@@ -206,33 +211,6 @@ async function generateStore(timestamp) {
             })
             .catch((e) => console.log(e));
         return response.data.filter((i) => (i.label === "TRANSLATION"));
-    }
-
-    async function getTitle(sectionId) {
-        const sectionURL = `${baseURL}/section/${sectionId}`;
-        const response = await axios
-            .get(`${sectionURL}/annotations`, {
-                auth,
-                params: { label: "TITLE" },
-            })
-            .catch((e) => console.log(e));
-        return response.data.filter((i) => (i.label === "TITLE"));
-    }
-
-    async function getPersons(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        try {
-            const response = await axios
-                .get(`${annotationURL}`, {
-                    auth,
-                    params: { label: "PERSONREF" },
-                })
-                .catch((e) => console.log(e));
-            return response.data.filter((i) => (i.label === "PERSONREF"));
-        } catch (error) {
-            console.log(`no person refs for section ${sectionId} `);
-            return null;
-        }
     }
 
     async function getAllPersons() {
@@ -245,43 +223,6 @@ async function generateStore(timestamp) {
         } catch (error) {
             console.log(error.message);
         }
-    }
-
-    async function getComments(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        try {
-            const response = await axios
-                .get(`${annotationURL}`, { auth, params: { label: "COMMENT" } })
-                .catch((e) => console.log(e));
-            return response.data.filter((i) => (i.label === "COMMENT"));
-        } catch (error) {
-            console.log(`no comments for section ${sectionId} `);
-            return null;
-        }
-    }
-
-    async function getPlaces(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        try {
-            const response = await axios
-                .get(`${annotationURL}`, {
-                    auth,
-                    params: { label: "PLACEREF" },
-                })
-                .catch((e) => console.log(e));
-            return response.data.filter((i) => (i.label === "PLACEREF"));
-        } catch (error) {
-            console.log(`no place refs for section ${sectionId} `);
-            return null;
-        }
-    }
-
-    async function getDates(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        const response = await axios
-            .get(`${annotationURL}`, { auth, params: { label: "DATEREF" } })
-            .catch((e) => console.log(e));
-        return response.data.filter((i) => (i.label === "DATEREF"));
     }
 
     function readingToHTML(reading) {
@@ -476,10 +417,10 @@ async function generateStore(timestamp) {
     }
 
     function annotationLookup(sectionId, annotations) {
-        return annotations.map((annotation) => ({
+        return annotations?.length ? annotations.map((annotation) => ({
             annotationRefId: annotation.id,
             sectionId: sectionId,
-        }));
+        })) : [];
     }
 
     async function makeDirectory(sectiondir) {

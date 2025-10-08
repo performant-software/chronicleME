@@ -152,20 +152,6 @@ async function generateStore(timestamp) {
         } catch (error) {
             console.log(sectionId, error)
         }
-
-        // let dateArray = new Promise((resolve) => {
-        //     getDates(sectionId).then((dates) => {
-        //         if (dates) writeAnnotationList(dates, sectionId, "dates");
-        //         resolve();
-        //     });
-        // });
-        // return await Promise.all([
-        //     allReadings,
-        //     titleArray,
-        //     personArray,
-        //     commentArray,
-        //     placeArray,
-        // ]).catch((e) => console.log(e));
     }
 
     async function getLemmaText(sectionId) {

@@ -9,7 +9,7 @@ async function generateLemmaTei(timestamp) {
     const startTime = moment();
     console.log("started", startTime.format("hh:mm:ss"));
     const config = loadConfig();
-    const baseURL = `${config.options.repository}/tradition/${config.options.tradition_id}`;
+    const baseURL = `${config.options.repository}/${config.options.tradition_id}`;
     const auth = config.auth;
     const outdir = `public/data/dts-xml_${timestamp}`;
 
@@ -17,6 +17,14 @@ async function generateLemmaTei(timestamp) {
     if (!fs.existsSync("public")) fs.mkdirSync("public", { recursive: true });
     if (!fs.existsSync("public/data")) fs.mkdirSync("public/data", { recursive: true });
     if (!fs.existsSync(outdir)) fs.mkdirSync(outdir, { recursive: true });
+
+    // make strings for person, place, event, and comments for each section
+    let lists = {
+        people: "",
+        places: "",
+        events: "",
+        annotations: ""
+    }
 
     // initialize TEI XML
     let teiDoc = `<?xml version="1.0" encoding="utf-8"?>
@@ -37,10 +45,37 @@ async function generateLemmaTei(timestamp) {
     </teiHeader>
     <text xml:id="lemma">
         <body xml:lang="hy">`;
-    teiDoc += await fetchAndProcessData().catch((e) => console.log(e));
+    teiDoc += await fetchAndProcessData(lists).catch((e) => console.log(e));
     teiDoc += `
         </body>
     </text>
+    <standOff>`
+    if (lists.people?.length) {
+        teiDoc += `
+        <listPerson>
+            ${lists.people}
+        </listPerson>`
+    }
+    if (lists.places?.length) {
+        teiDoc += `
+        <listPlace>
+            ${lists.places}
+        </listPlace>`
+    }
+    if (lists.events?.length) {
+        teiDoc += `
+        <listEvent>
+            ${lists.events}
+        </listEvent>`
+    }
+    if (lists.annotations?.length) {
+        teiDoc += `
+        <listAnnotation>
+            ${lists.annotations}
+        </listAnnotation>`
+    }
+    teiDoc += `
+    </standOff>
 </TEI>`;
     fs.writeFileSync(`${outdir}/lemma.tei.xml`, teiDoc);
 
@@ -51,16 +86,18 @@ async function generateLemmaTei(timestamp) {
     }
 
     // fetch data and append to teiDoc
-    async function fetchAndProcessData() {
+    async function fetchAndProcessData(lists) {
         const sections = await getSections().catch((e) => console.log(e));
+        console.log('Sections fetched.')
         const sectionsForTei = await Promise.all(
             sections.map(async (section) => {
                 return getSectionData(section.id);
             }),
         );
-        return createTei(sectionsForTei);
+        return createTei(sectionsForTei, lists);
     }
     async function getSectionData(sectionId) {
+        console.log(`Processing section ${sectionId}...`)
         // get readings for section
         const allReadings = await getReadings(sectionId);
         const filteredReadings = allReadings
@@ -76,8 +113,18 @@ async function generateLemmaTei(timestamp) {
             };
         });
 
+        // get annotations
+        const annotations = await getAnnotations(sectionId);
+
+        const titleArray = annotations && annotations.filter((a) => (a.label === "TITLE"));
+        const commentArray = annotations && annotations.filter((a) => (a.label === "COMMENT"));
+        const personArray = annotations && annotations.filter((a) => (a.label === "PERSONREF"));
+        const placeArray = annotations && annotations.filter((a) => (a.label === "PLACEREF"));
+        const dateArray = annotations && annotations.filter((a) => (a.label === "DATEREF"));
+        const datingArray = annotations && annotations.filter((a) => (a.label === "DATING"));
+
+
         // get titles for section
-        const titleArray = await getTitle(sectionId);
         let titles = {};
         if (Array.isArray(titleArray) && titleArray.length > 0) {
             const englishTitle = titleArray.find((title) => title.properties.language === "en").properties.text;
@@ -93,21 +140,18 @@ async function generateLemmaTei(timestamp) {
         }
 
         // get annotations for section
-        const commentArray = await getComments(sectionId);
         const comments = createRefs(commentArray, "comment");
-        const personArray = await getPersons(sectionId);
         const persons = createRefs(personArray, "person");
-        const placeArray = await getPlaces(sectionId);
         const places = createRefs(placeArray, "place");
-        const dateArray = await getDates(sectionId);
         const dates = createRefs(dateArray, "date");
+        const events = createRefs(datingArray, "event")
 
         // create section object
         return {
             id: sectionId,
             titles,
             readings,
-            annotations: [...comments, ...persons, ...places, ...dates],
+            annotations: [...comments, ...persons, ...places, ...dates, ...events],
         };
     }
 
@@ -126,67 +170,19 @@ async function generateLemmaTei(timestamp) {
         return response.data;
     }
 
-    async function getTitle(sectionId) {
-        const sectionURL = `${baseURL}/section/${sectionId}`;
-        const response = await axios
-            .get(`${sectionURL}/annotations`, {
-                auth,
-                params: { label: "TITLE" },
-            })
-            .catch((e) => console.log(e));
-        return response.data;
-    }
-    async function getPersons(sectionId) {
+    async function getAnnotations(sectionId) {
         const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
         try {
             const response = await axios
                 .get(`${annotationURL}`, {
-                    auth,
-                    params: { label: "PERSONREF" },
+                    auth
                 })
                 .catch((e) => console.log(e));
             return response.data;
         } catch (error) {
-            console.log(`no person refs for section ${sectionId} `);
+            console.log(`no annotations for section ${sectionId} `);
             return null;
         }
-    }
-
-    async function getComments(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        try {
-            const response = await axios
-                .get(`${annotationURL}`, { auth, params: { label: "COMMENT" } })
-                .catch((e) => console.log(e));
-            return response.data;
-        } catch (error) {
-            console.log(`no comments for section ${sectionId} `);
-            return null;
-        }
-    }
-
-    async function getPlaces(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        try {
-            const response = await axios
-                .get(`${annotationURL}`, {
-                    auth,
-                    params: { label: "PLACEREF" },
-                })
-                .catch((e) => console.log(e));
-            return response.data;
-        } catch (error) {
-            console.log(`no place refs for section ${sectionId} `);
-            return null;
-        }
-    }
-
-    async function getDates(sectionId) {
-        const annotationURL = `${baseURL}/section/${sectionId}/annotations`;
-        const response = await axios
-            .get(`${annotationURL}`, { auth, params: { label: "DATEREF" } })
-            .catch((e) => console.log(e));
-        return response.data;
     }
 
     function createRefs(annotations, type) {
@@ -212,13 +208,15 @@ async function generateLemmaTei(timestamp) {
         // Get the opening TEI tag depending on the type of annotation
         switch (annotation.type) {
             case "comment":
-                return `<ref target="annotation_${annotation.id}">`;
+                return `<milestone type="comment" unit="start" ana="#annotation_${annotation.id}" />`;
             case "person":
                 return `<name ref="person_${annotation.id}">`;
             case "place":
                 return `<name ref="place_${annotation.id}">`;
             case "date":
                 return "<date>";
+            case "event":
+                return `<milestone type="event" unit="start" ana="#event_${annotation.id}" />`;
         }
     }
 
@@ -226,55 +224,88 @@ async function generateLemmaTei(timestamp) {
         // Get the closing TEI tag depending on the type of annotation
         switch (annotation.type) {
             case "comment":
-                return `</ref><note xml:id="annotation_${annotation.id}" xml:lang="en">${annotation.text}</note>`;
+                return `<milestone type="comment" unit="end" ana="#annotation_${annotation.id}" />`;
             case "person":
             case "place":
                 return `</name>`;
             case "date":
                 return "</date>";
+            case "event":
+                return `<milestone type="event" unit="end" ana="#event_${annotation.id}" />`
         }
     }
 
-    function makeLists(nodeList) {
-        // Collect all the persons and places from nodes into lists
+    function makeLists(nodeList, sectionId) {
+        // Collect all the persons, places, comments, and events from nodes into lists
         const placeList = [];
         const personList = [];
+        const eventList = [];
+        const annotationList = [];
         nodeList.forEach((node) => {
             if (node.annotations) {
                 node.annotations.forEach((anno) => {
-                    // add places/persons to lists if not present yet
+                    // add places/persons/events/annotations to lists if not present yet
                     if (anno.type === "place" && !placeList.some((place) => place.id === anno.id)) {
                         placeList.push(anno);
                     } else if (anno.type === "person" && !personList.some((person) => person.id === anno.id)) {
                         personList.push(anno);
+                    } else if (anno.type === "event" && !eventList.some((event) => event.id === anno.id)) {
+                        eventList.push(anno);
+                    } else if (anno.type === "comment" && !annotationList.some((comment) => comment.id === anno.id)) {
+                        annotationList.push(anno);
                     }
                 });
             }
         })
         // Create listPerson and listPlace TEI elements with contents from annotations
         let lists = "";
+        let people = "";
+        let places = "";
+        let events = "";
+        let annotations = "";
         const indent = " ".repeat(16);
         const indent2 = " ".repeat(20);
         if (personList.length > 0) {
-            lists += `${indent}<listPerson>\n`;
+            people += `${indent}<listPerson xml:id="section_${sectionId}_people">\n`;
             personList.forEach((person) => {
-                lists += `${indent2}<person xml:id="person_${person.id}"><persName xml:lang="hy">${person.text}</persName></person>\n`;
+                people += `${indent2}<person xml:id="person_${person.id}"><persName xml:lang="hy">${person.text}</persName></person>\n`;
             });
-            lists += `${indent}</listPerson>${placeList.length > 0 ? "\n" : ""}`;
+            people += `${indent}</listPerson>\n`;
         }
         if (placeList.length > 0) {
-            lists += `${indent}<listPlace>\n`;
+            places += `${indent}<listPlace xml:id="section_${sectionId}_places">\n`;
             placeList.forEach((place) => {
-                lists += `${indent2}<place xml:id="place_${place.id}"><placeName xml:lang="hy">${place.text}</placeName></place>\n`;
+                places += `${indent2}<place xml:id="place_${place.id}"><placeName xml:lang="hy">${place.text}</placeName></place>\n`;
             });
-            lists += `${indent}</listPlace>`;
+            places += `${indent}</listPlace>\n`;
         }
-        return lists;
+        if (eventList.length > 0) {
+            events += `${indent}<listEvent xml:id="section_${sectionId}_events">\n`;
+            eventList.forEach((event) => {
+                events += `${indent2}<event xml:id="event_${event.id}"><eventName xml:lang="hy">${event.text}</eventName></event>\n`;
+            });
+            events += `${indent}</listEvent>\n`;
+        }
+        if (annotationList.length > 0) {
+            annotations += `${indent}<listAnnotation xml:id="section_${sectionId}_annotations">\n`;
+            annotationList.forEach((anno) => {
+                annotations += `<note xml:id="annotation_${anno.id}" xml:lang="en">${anno.text}</note>\n`;
+            });
+            annotations += `${indent}</listAnnotation>\n`;
+        }
+        return {
+            people,
+            places,
+            events,
+            annotations
+        };
     }
 
     function createNodeTei(node) {
         // create TEI markup for a single node
         const space = node.needsSpaceBefore ? " " : "";
+        // we only have to worry about breaking existing tags with non-self-closing nodes
+        const nonSCTypes = ["place", "person", "date"]
         let text = stripTags(node.text);
         if (node.annotations) {
             node.annotations.forEach((anno) => {
@@ -282,7 +313,7 @@ async function generateLemmaTei(timestamp) {
                     // if this is the start and end of an annotation, wrap with tags
                     // check for existing tags to make sure we don't break them
                     const existingCloseTag = text.indexOf("</");
-                    if (existingCloseTag > -1) {
+                    if (existingCloseTag > -1 && nonSCTypes.includes(anno.type)) {
                         const before = text.substring(0, existingCloseTag);
                         const after = text.substring(existingCloseTag);
                         text = `${getOpenTag(anno)}${before}${getCloseTag(anno)}${after}`;
@@ -302,11 +333,11 @@ async function generateLemmaTei(timestamp) {
         return `${space}${text}`;
     }
 
-    function createSectionTei(annotations, sectionNodes) {
+    function createSectionTei(sectionAnnotations, sectionNodes, sectionId, lists) {
         // add annotations markup to lemma text
         let annotatedNodes = [];
         // add annotation data to start, end, and middle nodes for each annotation
-        annotations.forEach((anno) => {
+        sectionAnnotations.forEach((anno) => {
             const startNode = sectionNodes.find((node) => parseInt(node.id) === parseInt(anno.begin));
             let nodesBetween = [];
             const endNode = sectionNodes.find((node) => parseInt(node.id) === parseInt(anno.end));
@@ -372,12 +403,16 @@ async function generateLemmaTei(timestamp) {
         // collect the markup for each node and generate TEI
         const paragraph = allNodes.map((node) => createNodeTei(node)).join("");
         // create the metadata lists
-        const lists = makeLists(allNodes);
-        return paragraph ? `<p>${paragraph}</p>\n${lists}` : "";
+        const { people, places, events, annotations } = makeLists(allNodes, sectionId);
+        lists.people += people;
+        lists.places += places;
+        lists.events += events;
+        lists.annotations += annotations;
+        return paragraph ? `<p>${paragraph}</p>\n` : "";
     }
 
     // compose a TEI div for each section
-    function createTei(sections) {
+    function createTei(sections, lists) {
         const sectionsTei = sections.map((section) => {
             let sectionNodes = [];
             let pos = 0;
@@ -393,7 +428,7 @@ async function generateLemmaTei(timestamp) {
                 pos += reading.text.length;
             });
             // create markup and return the TEI div
-            const markedupText = createSectionTei(section.annotations, sectionNodes);
+            const markedupText = createSectionTei(section.annotations, sectionNodes, section.id, lists);
             const head1 = section.titles?.armenianTitle
                 ? `                <head xml:lang="hy">${section.titles.armenianTitle}</head>\n`
                 : "";

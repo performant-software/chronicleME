@@ -83,8 +83,53 @@ For Stemmaweb, the final argument should be something like `edition@monitor.stem
 
 **On the server:**
 
-```rm -rf build
+```sh
+rm -rf build
 unzip <buildID>
 rm -rf www/*
 cp -r build/* www
+```
+
+## DTS support
+
+To support [DTS](https://distributed-text-services.github.io/specifications/) navigation and document endpoints using [DTSflat-server](https://github.com/robcast/dtsflat-server) and [Simple tei2dtsflat](https://github.com/robcast/simple-tei2dtsflat), follow the following instructions.
+
+### Dependency Installation
+
+Navigate to the `/script` directory and clone the simple-tei2dtsflat repo.
+
+```sh
+cd script
+git clone https://github.com/performant-software/simple-tei2dtsflat.git
+cd ..
+```
+
+### DTS Data Generation
+
+From the project root directory, run the following command:
+
+```sh
+node script/generateDtsData.js
+```
+
+This will create a new timestamped directory in the `public/data` folder, containing a DTSFlat file structure of all manuscripts and the lemma edition.
+
+### DTS Endpoint Nginx Configuration
+
+In order to set up a server with DTS, you may follow the instructions at the [DTSflat-server](https://github.com/robcast/dtsflat-server) repo. Just copy your new DTS data directory (`public/data/dts-data_YYYY-MM-DD_hh:mm:ss`) to the `DTS_DATA_DIR` location you set in `.env` when following that repo.
+
+If you wish to serve the DTS endpoints from the same server as the critical edition, you may need to modify the Nginx configuration. For example, our development server uses the following configuration to serve the DTS endpoints from `/dts`, pulling data from the `/var/www/dts-data` directory. It is appended as a second `location` block, in addition to the block for `/` that serves the critical edition static site from the `/var/www/html` directory.
+
+To view this configuration, view [example.nginx.conf](script/example.nginx.conf) in the `/script` directory.
+
+With this configuration, when you are ready to regenerate the DTS data, you can run the script and then replace the contents of `/var/www/dts-data` on the server with the contents of the latest `public/data/dts-data_YYYY-MM-DD_hh:mm:ss` directory. For example, from the project root directory on your local machine, the command might look something like this with [rsync](https://www.digitalocean.com/community/tutorials/how-to-use-rsync-to-sync-local-and-remote-directories):
+
+```sh
+rsync -ar --delete public/data/dts-data_YYYY-MM-DD_hh:mm:ss/. user@server:/var/www/dts-data
+```
+
+We run it with the following additional options in order to ensure MacOS Spotlight `.DS_Store` files are not included:
+
+```sh
+rsync -arv --exclude=.DS_Store --delete-excluded --delete public/data/dts-data_YYYY-MM-DD_hh:mm:ss/. user@server:/var/www/dts-data
 ```

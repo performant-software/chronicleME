@@ -8,7 +8,7 @@ async function GenerateLocationData(timestamp) {
     const startTime = moment();
     console.log("started", startTime.format("hh:mm:ss"));
     const config = loadConfig();
-    const baseURL = `${config.options.repository}/tradition/${config.options.tradition_id}`;
+    const baseURL = `${config.options.repository}/${config.options.tradition_id}`;
     const auth = config.auth;
     const outdir = `public/data/data_${timestamp}`;
     const geoLocations = [];
@@ -30,7 +30,7 @@ async function GenerateLocationData(timestamp) {
         const geoRequests = [];
         const places = await getPlaces().catch((e) => console.log(e));
 
-        places.data.forEach((p) => {
+        places && places.forEach((p) => {
             let url = p.properties.href;
             if (url && url.indexOf("pleiades") > -1) {
                 let pleiadesRequest = fetchGeoJsonLocation(url, p);
@@ -153,7 +153,7 @@ async function GenerateLocationData(timestamp) {
             const response = await axios
                 .get(`${baseURL}/annotations?label=PLACE`, { auth })
                 .catch((e) => console.log(e));
-            return response;
+            return response.data ? response.data.filter((i) => (i.label === "PLACE")) : [];
         } catch (error) {
             console.log(`error ${error.message}`);
         }

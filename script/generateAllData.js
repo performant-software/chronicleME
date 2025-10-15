@@ -6,7 +6,7 @@ const timestamp = moment().format("YYYY-MM-DD_hh:mm:ss");
 
 spawn("python3", [
     `script/generate_svgs.py`,
-    `-r https://api.editions.byzantini.st/ChronicleME/stemmarest`,
+    `-r ${apiAuth["options"]["repository"]}`,
     `-u ${apiAuth["auth"]["username"]}`,
     `-p ${apiAuth["auth"]["password"]}`,
     `-t ${apiAuth["options"]["tradition_id"]}`,

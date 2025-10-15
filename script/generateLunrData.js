@@ -9,7 +9,7 @@ async function generateLunrSource(timestamp) {
     const startTime = moment();
     console.log("started", startTime.format("hh:mm:ss"));
     const config = loadConfig();
-    const baseURL = `${config.options.repository}/tradition/${config.options.tradition_id}`;
+    const baseURL = `${config.options.repository}/${config.options.tradition_id}`;
     const auth = config.auth;
     const outdir = `public/data/data_${timestamp}`;
     const lunrData = [];
@@ -176,7 +176,7 @@ async function generateLunrSource(timestamp) {
             sigil === "Lemma text"
                 ? (r) => r.is_lemma && !r.is_start && !r.is_end
                 : (r) =>
-                      r.witnesses.includes(sigil) && !r.is_start && !r.is_end;
+                    r.witnesses.includes(sigil) && !r.is_start && !r.is_end;
         const witReadings = readings.filter(filterCondition);
         witReadings.sort((first, second) => {
             return first.rank - second.rank;
@@ -263,7 +263,7 @@ async function generateLunrSource(timestamp) {
                 params: { label: "TRANSLATION" },
             })
             .catch((e) => console.log(e));
-        return response.data;
+        return response.data.filter((i) => (i.label === "TRANSLATION"));
     }
 }
 

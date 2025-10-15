@@ -10,7 +10,7 @@ from requests.auth import HTTPBasicAuth
 
 def collect_tradition_data(options, auth=None):
     '''Iterate through the given tradition, saving an SVG  for each section into the necessary output directory.'''
-    baseurl = "%s/tradition/%s" % (options.repository, options.tradition_id.strip())
+    baseurl = "%s/%s" % (options.repository, options.tradition_id.strip())
 
     r = requests.get("%s/sections" % baseurl, auth=auth)
     r.raise_for_status()
@@ -42,7 +42,7 @@ def collect_section_data(options, section, outdir, auth=None):
         os.makedirs(sectiondir)
     except FileExistsError:
         pass
-    baseurl = "%s/tradition/%s/section/%s" % (options.repository, options.tradition_id.strip(), section.get('id'))
+    baseurl = "%s/%s/section/%s" % (options.repository, options.tradition_id.strip(), section.get('id'))
     # Collect the section dot and SVGify it
     dotparams = {
         'show_normal': 'true',

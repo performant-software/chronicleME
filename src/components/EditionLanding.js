@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import Card from "@material-ui/core/Card";
 import CardActions from "@material-ui/core/CardActions";
@@ -8,11 +8,19 @@ import { Grid } from "@material-ui/core";
 import { Link } from "react-router-dom";
 import Header from "./Header";
 
-const EditionLanding = ({ onSearch }) => {
+const EditionLanding = ({ onSearch, sections }) => {
     const cardStyle = {
         width: "210px",
         height: "210px",
     };
+
+    // the years at which the books are split
+    const milestones = [500, 550, 577];
+
+    const book1Id = useMemo(() => (sections?.length && sections[0].sectionId), [sections]);
+    const book2Id = useMemo(() => (sections?.length && sections.find((s) => (Number(s.milestone) >= milestones[0]))?.sectionId), [sections]);
+    const book3Id = useMemo(() => (sections?.length && sections.find((s) => (Number(s.milestone) >= milestones[1]))?.sectionId), [sections]);
+    const continuationId = useMemo(() => (sections && sections.find((s) => (Number(s.milestone) >= milestones[2]))?.sectionId), [sections]);
 
     return (
         <Grid container>
@@ -79,7 +87,7 @@ const EditionLanding = ({ onSearch }) => {
                                             <Button
                                                 size="large"
                                                 component={Link}
-                                                to="/Edition/1019321"
+                                                to={`/Edition/${book1Id}`}
                                                 color="secondary"
                                             >
                                                 <Typography variant="body2">
@@ -103,7 +111,7 @@ const EditionLanding = ({ onSearch }) => {
                                             <Button
                                                 size="large"
                                                 component={Link}
-                                                to="/Edition/955909"
+                                                to={`/Edition/${book2Id}`}
                                                 color="secondary"
                                             >
                                                 <Typography variant="body2">
@@ -127,7 +135,7 @@ const EditionLanding = ({ onSearch }) => {
                                             <Button
                                                 size="large"
                                                 component={Link}
-                                                to="/Edition/1101117"
+                                                to={`/Edition/${book3Id}`}
                                                 color="secondary"
                                             >
                                                 <Typography variant="body2">
@@ -151,7 +159,7 @@ const EditionLanding = ({ onSearch }) => {
                                             <Button
                                                 size="large"
                                                 component={Link}
-                                                to="/Edition/1041054"
+                                                to={`/Edition/${continuationId}`}
                                                 color="secondary"
                                             >
                                                 <Typography variant="body2">
@@ -177,6 +185,7 @@ const EditionLanding = ({ onSearch }) => {
 
 EditionLanding.propTypes = {
     onSearch: PropTypes.func,
+    sections: PropTypes.array
 };
 
 export default EditionLanding;

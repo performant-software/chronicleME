@@ -1,4 +1,4 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useMemo } from "react";
 import PropTypes from "prop-types";
 import TextPane from "./Edition/TextPane";
 import Typography from "@material-ui/core/Typography";
@@ -8,6 +8,8 @@ import Button from "@material-ui/core/Button";
 import { Link } from "react-router-dom";
 
 const HomePage = ({ sections, onSearch, selectedTimestamp }) => {
+    const firstSectionId = useMemo(() => (sections?.length && sections[0].sectionId), [sections]);
+
     return (
         <Fragment>
             <Header onSearch={onSearch} />
@@ -59,7 +61,7 @@ const HomePage = ({ sections, onSearch, selectedTimestamp }) => {
                                 onSelectPerson={() => {}}
                                 onSelectSentence={() => {}}
                                 reading="Lemma Text"
-                                sectionId="1019321"
+                                sectionId={firstSectionId}
                                 sections={sections}
                                 selectedTimestamp={selectedTimestamp}
                             />
@@ -72,7 +74,7 @@ const HomePage = ({ sections, onSearch, selectedTimestamp }) => {
                                 onSelectPerson={() => {}}
                                 onSelectSentence={() => {}}
                                 reading="Translation"
-                                sectionId="1019321"
+                                sectionId={firstSectionId}
                                 sections={sections}
                                 selectedTimestamp={selectedTimestamp}
                             />
@@ -89,7 +91,7 @@ const HomePage = ({ sections, onSearch, selectedTimestamp }) => {
                                 color="secondary"
                                 component={Link}
                                 size="large"
-                                to="/Edition/1019321"
+                                to={`/Edition/${firstSectionId}`}
                             >
                                 <Typography variant="h5">
                                     {"Read on..."}
